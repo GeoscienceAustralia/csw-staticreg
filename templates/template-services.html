@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <h1>Webb Services Register</h1>
+    {% include 'alternates.html' %}
+    <h2>These are all the URIs of eCat's Web Service</h2>
+    <ul>
+        {%- for id in ids %}
+            <li><a href="http://pid.geoscience.gov.au/service/{{id}}">http://pid.geoscience.gov.au/service/{{id}}</a></li>
+        {%- endfor %}
+    </ul>
+{% endblock %}

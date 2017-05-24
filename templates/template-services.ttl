@@ -1,0 +1,20 @@
+@prefix ldp: <http://www.w3.org/ns/ldp#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix reg: <http://purl.org/linked-data/registry#> .
+@prefix xhv: <https://www.w3.org/1999/xhtml/vocab#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+<http://pid.geoscience.gov.au/service/> a reg:Register ;
+    rdfs:label "Web Service Register"^^xsd:string ;
+    rdfs:comment "Geoscience Australia's Web Service Register"^^xsd:string ;
+    reg:containedItemClass prov:SoftwareAgent
+.
+
+{% for id in ids %}
+<http://pid.geoscience.gov.au/service/{{id}}> a prov:SoftwareAgent ;
+    reg:register <http://pid.geoscience.gov.au/service/>
+.
+{% endfor %}
