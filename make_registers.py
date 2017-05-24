@@ -270,6 +270,7 @@ def generate_register(ids, datasets_services='datasets', mime='text/html', html_
 # this only runs as a script
 if __name__ == '__main__':
 
+    static_dir = 'http://52.62.134.119/html/static'
     #
     #   Services
     #
@@ -282,12 +283,11 @@ if __name__ == '__main__':
     open('services.html', 'w').write(generate_register(ids,
                                                        datasets_services='services',
                                                        mime='text/html',
-                                                       html_static_dir='/ecatreg/static'))
+                                                       html_static_dir=static_dir))
 
-    open('services.ttl', 'w').write(generate_register( ids,
-                                                       datasets_services='services',
-                                                       mime='text/turtle',
-                                                       html_static_dir='/ecatreg/static'))
+    open('services.ttl', 'w').write(generate_register(ids,
+                                                      datasets_services='services',
+                                                      mime='text/turtle'))
 
     #
     #   Datasets, with pagination
@@ -321,9 +321,8 @@ if __name__ == '__main__':
     open('datasets.html', 'w').write(generate_register(ids,
                                                        datasets_services='datasets',
                                                        mime='text/html',
-                                                       html_static_dir='/ecatreg/static'))
+                                                       html_static_dir=static_dir))
 
-    open('datasets.ttl', 'w').write(generate_register( ids,
-                                                       datasets_services='datasets',
-                                                       mime='text/turtle'))
-
+    open('datasets.ttl', 'w').write(generate_register(ids,
+                                                      datasets_services='datasets',
+                                                      mime='text/turtle'))

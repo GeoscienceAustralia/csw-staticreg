@@ -2,7 +2,10 @@
 
 {% block content %}
     <h1>Dataset Register</h1>
-    {% include 'alternates.html' %}
+    <div id="alternates-nav">
+         Alternates:
+         <a href="?_format=text/turtle">RDF (turtle)</a>
+    </div>
     <h2>These are all the URIs of eCat's Datasets</h2>
     <ul>
         {%- for id in ids %}
