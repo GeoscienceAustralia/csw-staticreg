@@ -1,3 +1,4 @@
+import os
 import re
 import math
 import requests
@@ -257,11 +258,11 @@ def extract_ecat_ids_et(xml_file):
 def generate_register(ids, datasets_services='datasets', mime='text/html', html_static_dir=''):
     if mime == 'text/html':
         # render a Jinja2 template after telling it where the templates dir is
-        template = Environment(loader=FileSystemLoader('templates')).from_string(open('templates/template-{}.html'.format(datasets_services)).read())
+        template = Environment(loader=FileSystemLoader(os.path.dirname(os.path.realpath(__file__)) + '/templates')).from_string(open(os.path.dirname(os.path.realpath(__file__)) + '/templates/template-{}.html'.format(datasets_services)).read())
         return template.render(ids=ids, static=html_static_dir)
     elif mime == 'text/turtle':
         # render a Jinja2 template after telling it where the templates dir is
-        template = Environment(loader=FileSystemLoader('templates')).from_string(open('templates/template-{}.ttl'.format(datasets_services)).read())
+        template = Environment(loader=FileSystemLoader(os.path.dirname(os.path.realpath(__file__)) + '/templates')).from_string(open(os.path.dirname(os.path.realpath(__file__)) + '/templates/template-{}.ttl'.format(datasets_services)).read())
         return template.render(ids=ids)
     else:
         raise ValueError('\'mime\' must be either text/html or text/turtle. Default (None) is text/html.')
@@ -280,14 +281,18 @@ if __name__ == '__main__':
     ids = extract_ecat_ids_stream(stream_csw_request(services_csw_endpoint, request_query))
 
     # make an HTML & a TTL file from those IDs
-    open('services.html', 'w').write(generate_register(ids,
-                                                       datasets_services='services',
-                                                       mime='text/html',
-                                                       html_static_dir=static_dir))
+    open(os.path.dirname(os.path.realpath(__file__)) + '/services.html', 'w').write(generate_register(
+	ids,
+        datasets_services='services',
+	mime='text/html',
+        html_static_dir=static_dir
+    ))
 
-    open('services.ttl', 'w').write(generate_register(ids,
-                                                      datasets_services='services',
-                                                      mime='text/turtle'))
+    open(os.path.dirname(os.path.realpath(__file__)) + '/services.ttl', 'w').write(generate_register(
+	ids,
+        datasets_services='services',
+	mime='text/turtle'
+    ))
 
     #
     #   Datasets, with pagination
@@ -318,11 +323,15 @@ if __name__ == '__main__':
     print 'total: {}'.format(len(ids))
 
     # make an HTML & a TTL file from those IDs
-    open('datasets.html', 'w').write(generate_register(ids,
-                                                       datasets_services='datasets',
-                                                       mime='text/html',
-                                                       html_static_dir=static_dir))
+    open(os.path.dirname(os.path.realpath(__file__)) + '/datasets.html', 'w').write(generate_register(
+	ids,
+        datasets_services='datasets',
+        mime='text/html',
+        html_static_dir=static_dir
+    ))
 
-    open('datasets.ttl', 'w').write(generate_register(ids,
-                                                      datasets_services='datasets',
-                                                      mime='text/turtle'))
+    open(os.path.dirname(os.path.realpath(__file__)) + '/datasets.ttl', 'w').write(generate_register(
+	ids,
+        datasets_services='datasets',
+	mime='text/turtle'
+    ))
