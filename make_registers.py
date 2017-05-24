@@ -255,15 +255,19 @@ def extract_ecat_ids_et(xml_file):
             ns_map = []
 
 
-def generate_register(ids, datasets_services='datasets', mime='text/html', html_static_dir=''):
+def generate_register(ecat_ids, datasets_services='datasets', mime='text/html', html_static_dir=''):
     if mime == 'text/html':
         # render a Jinja2 template after telling it where the templates dir is
-        template = Environment(loader=FileSystemLoader(os.path.dirname(os.path.realpath(__file__)) + '/templates')).from_string(open(os.path.dirname(os.path.realpath(__file__)) + '/templates/template-{}.html'.format(datasets_services)).read())
-        return template.render(ids=ids, static=html_static_dir)
+        template = Environment(loader=FileSystemLoader(os.path.dirname(os.path.realpath(__file__)) + '/templates'))\
+            .from_string(open(os.path.dirname(os.path.realpath(__file__)) + '/templates/template-{}.html'
+                              .format(datasets_services)).read())
+        return template.render(ids=ecat_ids, static=html_static_dir)
     elif mime == 'text/turtle':
         # render a Jinja2 template after telling it where the templates dir is
-        template = Environment(loader=FileSystemLoader(os.path.dirname(os.path.realpath(__file__)) + '/templates')).from_string(open(os.path.dirname(os.path.realpath(__file__)) + '/templates/template-{}.ttl'.format(datasets_services)).read())
-        return template.render(ids=ids)
+        template = Environment(loader=FileSystemLoader(os.path.dirname(os.path.realpath(__file__)) + '/templates'))\
+            .from_string(open(os.path.dirname(os.path.realpath(__file__)) + '/templates/template-{}.ttl'
+                              .format(datasets_services)).read())
+        return template.render(ids=ecat_ids)
     else:
         raise ValueError('\'mime\' must be either text/html or text/turtle. Default (None) is text/html.')
 
@@ -282,16 +286,16 @@ if __name__ == '__main__':
 
     # make an HTML & a TTL file from those IDs
     open(os.path.dirname(os.path.realpath(__file__)) + '/services.html', 'w').write(generate_register(
-	ids,
+        ids,
         datasets_services='services',
-	mime='text/html',
+        mime='text/html',
         html_static_dir=static_dir
     ))
 
     open(os.path.dirname(os.path.realpath(__file__)) + '/services.ttl', 'w').write(generate_register(
-	ids,
+        ids,
         datasets_services='services',
-	mime='text/turtle'
+        mime='text/turtle'
     ))
 
     #
@@ -324,14 +328,14 @@ if __name__ == '__main__':
 
     # make an HTML & a TTL file from those IDs
     open(os.path.dirname(os.path.realpath(__file__)) + '/datasets.html', 'w').write(generate_register(
-	ids,
+        ids,
         datasets_services='datasets',
         mime='text/html',
         html_static_dir=static_dir
     ))
 
     open(os.path.dirname(os.path.realpath(__file__)) + '/datasets.ttl', 'w').write(generate_register(
-	ids,
+        ids,
         datasets_services='datasets',
-	mime='text/turtle'
+        mime='text/turtle'
     ))
