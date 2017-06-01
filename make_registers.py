@@ -251,7 +251,7 @@ def extract_ecat_ids_et(xml_file):
             local_name = elem.tag.split('}')[1]
 
             if local_name == 'CharacterString':
-                print elem.text
+                print(elem.text)
             ns_map = []
 
 
@@ -259,13 +259,13 @@ def generate_register(ecat_ids, datasets_services='datasets', mime='text/html', 
     if mime == 'text/html':
         # render a Jinja2 template after telling it where the templates dir is
         template = Environment(loader=FileSystemLoader(os.path.dirname(os.path.realpath(__file__)) + '/templates'))\
-            .from_string(open(os.path.dirname(os.path.realpath(__file__)) + '/templates/template-{}.html'
+            .from_string(open(os.path.dirname(os.path.realpath(__file__)) + '/templates/{}.html'
                               .format(datasets_services)).read())
         return template.render(ids=ecat_ids, static=html_static_dir)
     elif mime == 'text/turtle':
         # render a Jinja2 template after telling it where the templates dir is
         template = Environment(loader=FileSystemLoader(os.path.dirname(os.path.realpath(__file__)) + '/templates'))\
-            .from_string(open(os.path.dirname(os.path.realpath(__file__)) + '/templates/template-{}.ttl'
+            .from_string(open(os.path.dirname(os.path.realpath(__file__)) + '/templates/{}.ttl'
                               .format(datasets_services)).read())
         return template.render(ids=ecat_ids)
     else:
@@ -298,6 +298,15 @@ if __name__ == '__main__':
         mime='text/turtle'
     ))
 
+    # staticmeta
+    sm_template = Environment(loader=FileSystemLoader(os.path.dirname(os.path.realpath(__file__)) + '/templates')) \
+        .from_string(
+        open(os.path.dirname(os.path.realpath(__file__)) + '/templates/datasets-staticmeta.html', 'r').read()
+    )
+
+    open(os.path.dirname(os.path.realpath(__file__)) + '/datasets-staticmeta.html', 'w') \
+        .write(sm_template.render(ids=ids))
+
     #
     #   Datasets, with pagination
     #
@@ -317,14 +326,14 @@ if __name__ == '__main__':
         start_position = (page - 1) * page_size + 1
         paged_query = make_csw_request_xml(start_position, page_size)
         # request one page
-        print 'requesting page {} of {}'.format(page, no_pages)
+        print('requesting page {} of {}'.format(page, no_pages))
         i = extract_ecat_ids_stream(stream_csw_request(datasets_csw_endpoint, paged_query))
-        print 'page ids: {}'.format(len(i))
+        print('page ids: {}'.format(len(i)))
         ids.extend(i)
 
         page += 1
 
-    print 'total: {}'.format(len(ids))
+    print('total: {}'.format(len(ids)))
 
     # make an HTML & a TTL file from those IDs
     open(os.path.dirname(os.path.realpath(__file__)) + '/datasets.html', 'w').write(generate_register(
