@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-sudo mv /home/ubuntu/ecat-static-registers/datasets.* /home/ubuntu/ecat-static-registers/services.* /var/www/html/
+sudo mv /var/www/staticreg/datasets* /var/www/staticreg/services.* /var/www/html/
