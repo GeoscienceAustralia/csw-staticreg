@@ -224,14 +224,7 @@ if __name__ == '__main__':
         mime='text/turtle'
     ))
 
-    # staticreg
-    sm_template = Environment(loader=FileSystemLoader(os.path.dirname(os.path.realpath(__file__)) + '/templates')) \
-        .from_string(
-        open(os.path.dirname(os.path.realpath(__file__)) + '/templates/datasets-staticreg.html', 'r').read()
-    )
-
-    open(os.path.dirname(os.path.realpath(__file__)) + '/datasets-staticreg.html', 'w') \
-        .write(sm_template.render(ids=ids))
+    print('finished services')
 
     #
     #   Datasets, with pagination
@@ -274,3 +267,14 @@ if __name__ == '__main__':
         datasets_services='datasets',
         mime='text/turtle'
     ))
+
+    # staticreg
+    sm_template = Environment(loader=FileSystemLoader(os.path.dirname(os.path.realpath(__file__)) + '/templates')) \
+        .from_string(
+        open(os.path.dirname(os.path.realpath(__file__)) + '/templates/datasets-staticreg.html', 'r').read()
+    )
+
+    open(os.path.dirname(os.path.realpath(__file__)) + '/datasets-staticreg.html', 'w') \
+        .write(sm_template.render(ids=ids))
+
+    print('finished datasets')
