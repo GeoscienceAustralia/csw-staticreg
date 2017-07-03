@@ -6,45 +6,6 @@ import xml.sax as x
 from xml.etree import cElementTree
 from jinja2 import Environment, FileSystemLoader
 
-datasets_csw_endpoint = 'http://ecat.ga.gov.au/geonetwork/srv/eng/csw'
-datasets_xml = 'datasets.xml'
-datasets_uri_base = 'http://pid.geoscience.gov.au/dataset/'
-datasets_ids = 'datasets.txt1'
-datasets_uris = 'datasets.txt'
-services_csw_endpoint = 'http://ecat.ga.gov.au/geonetwork/srv/eng/csw-services'
-services_xml = 'services.xml'
-services_uri_base = 'http://pid.geoscience.gov.au/service/'
-services_uris = 'services.txt'
-
-request_query = '''
-    <csw:GetRecords
-        xmlns:csw="http://www.opengis.net/cat/csw/2.0.2"
-        xmlns:ogc="http://www.opengis.net/ogc"
-        service="CSW"
-        version="2.0.2"
-        resultType="results"
-        startPosition="1"
-        maxRecords="100000"
-        outputFormat="application/xml"
-        outputSchema="csw:IsoRecord"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.opengis.net/cat/csw/2.0.2 http://schemas.opengis.net/csw/2.0.2/CSW-discovery.xsd"
-        xmlns:gmd="http://www.isotc211.org/2005/gmd"
-        xmlns:apiso="http://www.opengis.net/cat/csw/apiso/1.0">
-        <csw:Query typeNames="csw:Record">
-            <csw:ElementSetName>summary</csw:ElementSetName>
-            <csw:Constraint version="1.1.0">
-                <ogc:Filter>
-                   <PropertyIsLike wildCard="*" singleChar="_" escapeChar="\">
-                       <PropertyName>AnyText</PropertyName>
-                       <Literal>*</Literal>
-                   </PropertyIsLike>
-                </ogc:Filter>
-            </csw:Constraint>
-        </csw:Query>
-    </csw:GetRecords>
-'''
-
 
 def store_csw_request(csw_endpoint, request_xml, xml_file_to_save):
     r = requests.post(csw_endpoint,
@@ -69,68 +30,25 @@ def stream_csw_request(csw_endpoint, request_xml):
 
 
 def make_csw_request_xml(start_position, max_records):
-    return '''
-        <csw:GetRecords
-            xmlns:csw="http://www.opengis.net/cat/csw/2.0.2"
-            xmlns:ogc="http://www.opengis.net/ogc"
-            service="CSW"
-            version="2.0.2"
-            resultType="results"
-            startPosition="{:d}"
-            maxRecords="{:d}"
-            outputFormat="application/xml"
-            outputSchema="csw:IsoRecord"
-            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xsi:schemaLocation="http://www.opengis.net/cat/csw/2.0.2 http://schemas.opengis.net/csw/2.0.2/CSW-discovery.xsd"
-            xmlns:gmd="http://www.isotc211.org/2005/gmd"
-            xmlns:apiso="http://www.opengis.net/cat/csw/apiso/1.0">
-            <csw:Query typeNames="csw:Record">
-                <csw:ElementSetName>summary</csw:ElementSetName>
-                <csw:Constraint version="1.1.0">
-                    <ogc:Filter>
-                       <PropertyIsLike wildCard="*" singleChar="_" escapeChar="\">
-                           <PropertyName>AnyText</PropertyName>
-                           <Literal>*</Literal>
-                       </PropertyIsLike>
-                    </ogc:Filter>
-                </csw:Constraint>
-            </csw:Query>
-        </csw:GetRecords>
-    '''.format(start_position, max_records)
+    xml_template_path = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)),
+        'templates',
+        'csw_request_records.xml')
+    xml = open(xml_template_path, 'r').read()
+    xml = xml.replace('{{ start_position }}', str(start_position))
+    xml = xml.replace('{{ max_records }}', str(max_records))
+    return xml
 
 
 def get_total_no_of_records(csw_endpoint):
-    get_capabilities_hits_xml = '''<?xml version="1.0" encoding="UTF-8" ?>
-        <csw:GetRecords
-                xmlns:csw="http://www.opengis.net/cat/csw/2.0.2"
-                xmlns:ogc="http://www.opengis.net/ogc"
-                service="CSW"
-                version="2.0.2"
-                resultType="hits"
-                startPosition="1"
-                maxRecords="100000"
-                outputFormat="application/xml"
-                outputSchema="csw:IsoRecord"
-                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                xsi:schemaLocation="http://www.opengis.net/cat/csw/2.0.2 http://schemas.opengis.net/csw/2.0.2/CSW-discovery.xsd"
-                xmlns:gmd="http://www.isotc211.org/2005/gmd"
-                xmlns:apiso="http://www.opengis.net/cat/csw/apiso/1.0">
-                <csw:Query typeNames="csw:Record">
-                        <csw:ElementSetName>summary</csw:ElementSetName>
-                        <csw:Constraint version="1.1.0">
-                                <ogc:Filter>
-                                   <PropertyIsLike wildCard="*" singleChar="_" escapeChar="\">
-                                           <PropertyName>AnyText</PropertyName>
-                                           <Literal>*</Literal>
-                                   </PropertyIsLike>
-                                </ogc:Filter>
-                        </csw:Constraint>
-                </csw:Query>
-        </csw:GetRecords>
-    '''
+    xml_template_path = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)),
+        'templates',
+        'csw_request_records.xml')
+    xml = open(xml_template_path, 'r').read()
 
     r = requests.post(csw_endpoint,
-                      data=get_capabilities_hits_xml,
+                      data=xml,
                       headers={'Content-Type': 'application/xml'})
 
     # extract the number of hits
@@ -225,7 +143,7 @@ def extract_ecat_ids_stream(result_stream):
     return sorted(n.ids)
 
 
-# incomplete ET inmplementation of the same SAX parsing as IdHandler
+# incomplete ET implementation of the same SAX parsing as IdHandler
 def extract_ecat_ids_et(xml_file):
     context = cElementTree.iterparse(open(xml_file), events=('start', 'end'))
     context = iter(context)
@@ -233,7 +151,7 @@ def extract_ecat_ids_et(xml_file):
 
     # for event, elem in context:
     #     if elem.tag == 'CharacterString':
-    #         print elem.tag
+    #         print(elem.tag)
     #         elem.clear()
     #         root.clear()
 
@@ -274,8 +192,16 @@ def generate_register(ecat_ids, datasets_services='datasets', mime='text/html', 
 
 # this only runs as a script
 if __name__ == '__main__':
-
-    static_dir = 'http://52.62.134.119/html/static'
+    datasets_csw_endpoint = 'http://ecat.ga.gov.au/geonetwork/srv/eng/csw'
+    datasets_xml = 'datasets.xml'
+    datasets_uri_base = 'http://pid.geoscience.gov.au/dataset/'
+    datasets_ids = 'datasets.txt1'
+    datasets_uris = 'datasets.txt'
+    services_csw_endpoint = 'http://ecat.ga.gov.au/geonetwork/srv/eng/csw-services'
+    services_xml = 'services.xml'
+    services_uri_base = 'http://pid.geoscience.gov.au/service/'
+    services_uris = 'services.txt'
+    static_dir = 'http://13.54.73.187/html/static'
     #
     #   Services
     #
@@ -298,13 +224,13 @@ if __name__ == '__main__':
         mime='text/turtle'
     ))
 
-    # staticmeta
+    # staticreg
     sm_template = Environment(loader=FileSystemLoader(os.path.dirname(os.path.realpath(__file__)) + '/templates')) \
         .from_string(
-        open(os.path.dirname(os.path.realpath(__file__)) + '/templates/datasets-staticmeta.html', 'r').read()
+        open(os.path.dirname(os.path.realpath(__file__)) + '/templates/datasets-staticreg.html', 'r').read()
     )
 
-    open(os.path.dirname(os.path.realpath(__file__)) + '/datasets-staticmeta.html', 'w') \
+    open(os.path.dirname(os.path.realpath(__file__)) + '/datasets-staticreg.html', 'w') \
         .write(sm_template.render(ids=ids))
 
     #

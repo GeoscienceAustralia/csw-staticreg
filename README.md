@@ -1,10 +1,10 @@
 # eCat Static URI Register
-This Python code is designed to be used to create static HTML and RDF (turtle) file indexes of items within a [Catalogue 
+This Python code creates static HTML and RDF (turtle) file indexes of items within a [Catalogue 
 Service for the Web (CSW)](https://en.wikipedia.org/wiki/Catalog_Service_for_the_Web) service.
 
 It is implemented by [Geoscience Australia](http://www.ga.gov.au) to allow a web spiders (think: Google Bot) to find 
-links to, follow and then index the metadata of, all of GA's public datasets and services within GA's main metadata 
-catalogue, [eCat](http://ecat.ga.gov.au/geonetwork/) which is implemented using the 
+links to, follow and then index the metadata of, items within the CSW catalogue. In GA's case, the catalogue targeted is 
+[eCat Public](http://ecat.ga.gov.au/geonetwork/) which is implemented using the 
 [GeoNetworks](http://geonetwork-opensource.org/) catalogue tool.
 
 The static indexes that this code produces are online at:
