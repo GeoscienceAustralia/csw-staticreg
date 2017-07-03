@@ -201,7 +201,7 @@ if __name__ == '__main__':
     services_xml = 'services.xml'
     services_uri_base = 'http://pid.geoscience.gov.au/service/'
     services_uris = 'services.txt'
-    static_dir = 'http://13.54.73.187/html/static'
+    static_dir = 'http://13.54.73.187/static'
     #
     #   Services
     #
@@ -271,10 +271,10 @@ if __name__ == '__main__':
     # staticreg
     sm_template = Environment(loader=FileSystemLoader(os.path.dirname(os.path.realpath(__file__)) + '/templates')) \
         .from_string(
-        open(os.path.dirname(os.path.realpath(__file__)) + '/templates/datasets-staticreg.html', 'r').read()
+        open(os.path.dirname(os.path.realpath(__file__)) + '/templates/datasets-metatag.html', 'r').read()
     )
 
-    open(os.path.dirname(os.path.realpath(__file__)) + '/datasets-staticreg.html', 'w') \
+    open(os.path.dirname(os.path.realpath(__file__)) + '/datasets-metatag.html', 'w') \
         .write(sm_template.render(ids=ids))
 
     print('finished datasets')
