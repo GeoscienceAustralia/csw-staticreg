@@ -1,10 +1,10 @@
 import os
-import re
 import math
 import requests
 import xml.sax as x
 from xml.etree import cElementTree
 from jinja2 import Environment, FileSystemLoader
+from datetime import datetime
 
 
 def store_csw_request(csw_endpoint, request_xml, xml_file_to_save):
@@ -44,15 +44,17 @@ def get_total_no_of_records(csw_endpoint):
     xml_template_path = os.path.join(
         os.path.dirname(os.path.realpath(__file__)),
         'templates',
-        'csw_request_records.xml')
-    xml = open(xml_template_path, 'r').read()
+        'csw_request_count.xml')
+    xml = open(xml_template_path, 'r').read().encode('utf-8')
+    print(xml)
 
     r = requests.post(csw_endpoint,
                       data=xml,
                       headers={'Content-Type': 'application/xml'})
 
     # extract the number of hits
-    return int(re.findall('numberOfRecordsMatched="(\d+)"', r.content)[0])
+    return r.content
+    #return int(re.findall('numberOfRecordsMatched="(\d+)"', r.content.decode('utf-8'))[0])
 
 
 class IdHandler(x.ContentHandler):
@@ -192,21 +194,21 @@ def generate_register(ecat_ids, datasets_services='datasets', mime='text/html', 
 
 # this only runs as a script
 if __name__ == '__main__':
-    datasets_csw_endpoint = 'http://ecat.ga.gov.au/geonetwork/srv/eng/csw'
+    datasets_csw_endpoint = 'https://ecat.ga.gov.au/geonetwork/srv/eng/csw'
     datasets_xml = 'datasets.xml'
     datasets_uri_base = 'http://pid.geoscience.gov.au/dataset/'
     datasets_ids = 'datasets.txt1'
     datasets_uris = 'datasets.txt'
-    services_csw_endpoint = 'http://ecat.ga.gov.au/geonetwork/srv/eng/csw-services'
+    services_csw_endpoint = 'https://ecat.ga.gov.au/geonetwork/srv/eng/csw-services'
     services_xml = 'services.xml'
     services_uri_base = 'http://pid.geoscience.gov.au/service/'
     services_uris = 'services.txt'
     static_dir = 'http://13.54.73.187/static'
+
     #
     #   Services
     #
     # get all the service IDs from eCat's Service's virtual CSW endpoint
-    services_csw_endpoint = 'http://ecat.ga.gov.au/geonetwork/srv/eng/csw-services'
     request_query = make_csw_request_xml(1, 1000)
     ids = extract_ecat_ids_stream(stream_csw_request(services_csw_endpoint, request_query))
 
@@ -232,7 +234,7 @@ if __name__ == '__main__':
     # get all the service IDs from eCat's Datasets's virtual CSW endpoint
     # get the total number of records
     # num_records = get_total_no_of_records('http://ecat.ga.gov.au/geonetwork/srv/eng/csw')
-    num_records = 29900
+    num_records = 30000
     page_size = 1000
 
     # calculate the total number of page calls
@@ -274,7 +276,8 @@ if __name__ == '__main__':
         open(os.path.dirname(os.path.realpath(__file__)) + '/templates/datasets-metatag.html', 'r').read()
     )
 
+    generated_datetime_str = datetime.now().strftime('%d %b %Y, %-I:%M %p')
     open(os.path.dirname(os.path.realpath(__file__)) + '/datasets-metatag.html', 'w') \
-        .write(sm_template.render(ids=ids))
+        .write(sm_template.render(ids=ids, generated=generated_datetime_str))
 
     print('finished datasets')
