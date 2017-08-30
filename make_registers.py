@@ -5,6 +5,7 @@ import requests
 import xml.sax as x
 from xml.etree import cElementTree
 from jinja2 import Environment, FileSystemLoader
+import xml.dom.minidom
 
 
 def store_csw_request(csw_endpoint, request_xml, xml_file_to_save):
@@ -192,21 +193,21 @@ def generate_register(ecat_ids, datasets_services='datasets', mime='text/html', 
 
 # this only runs as a script
 if __name__ == '__main__':
-    datasets_csw_endpoint = 'http://ecat.ga.gov.au/geonetwork/srv/eng/csw'
+    datasets_csw_endpoint = 'https://ecat.ga.gov.au/geonetwork/srv/eng/csw'
     datasets_xml = 'datasets.xml'
     datasets_uri_base = 'http://pid.geoscience.gov.au/dataset/'
     datasets_ids = 'datasets.txt1'
     datasets_uris = 'datasets.txt'
-    services_csw_endpoint = 'http://ecat.ga.gov.au/geonetwork/srv/eng/csw-services'
+    services_csw_endpoint = 'https://ecat.ga.gov.au/geonetwork/srv/eng/csw-services'
     services_xml = 'services.xml'
     services_uri_base = 'http://pid.geoscience.gov.au/service/'
     services_uris = 'services.txt'
     static_dir = 'http://13.54.73.187/html/static'
+
     #
     #   Services
     #
     # get all the service IDs from eCat's Service's virtual CSW endpoint
-    services_csw_endpoint = 'http://ecat.ga.gov.au/geonetwork/srv/eng/csw-services'
     request_query = make_csw_request_xml(1, 1000)
     ids = extract_ecat_ids_stream(stream_csw_request(services_csw_endpoint, request_query))
 
