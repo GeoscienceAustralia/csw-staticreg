@@ -242,6 +242,8 @@ if __name__ == '__main__':
 
         page += 1
 
+    ids.sort()  # to sort the entire lists, since it is paginated
+
     print('total: {}'.format(len(ids)))
 
     # make an HTML & a TTL file from those IDs
