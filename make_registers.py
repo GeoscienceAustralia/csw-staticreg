@@ -77,33 +77,21 @@ class IdHandler(x.ContentHandler):
     # above, also anything else in between
     def startElementNS(self, name, qname, attrs):
         uri, localname = name
-        if localname == 'identificationInfo':
+        # //mdb:MD_Metadata/mdb:alternativeMetadataReference/cit:CI_Citation/cit:identifier/mcc:MD_Identifier/mcc:code/gco:CharacterString/text()
+        if localname == 'MD_Metadata':
             self.one = True
-        if (self.one and localname == 'SV_ServiceIdentification') or self.one and localname == 'MD_DataIdentification':
+        if self.one and localname == 'alternativeMetadataReference':
             self.two = True
-        if self.two and localname == 'citation':
+        if self.two and localname == 'CI_Citation':
             self.three = True
-        if self.three and localname == 'CI_Citation':
-            # if the parent tag of the CI_citation != 'citation' (e.g. 'authority' for EPSG code), restart seq checker
-            if self.parent[-1] == 'citation':
-                self.four = True
-            else:
-                self.parent = []
-                self.one = False
-                self.two = False
-                self.three = False
-                self.four = False
-                self.five = False
-                self.six = False
-                self.seven = False
-        if self.four and localname == 'RS_Identifier':
+        if self.three and localname == 'identifier':
+            self.four = True
+        if self.four and localname == 'MD_Identifier':
             self.five = True
         if self.five and localname == 'code':
             self.six = True
         if self.six and localname == 'CharacterString':
             self.seven = True
-
-        self.parent.append(localname)
 
     # if the required sequence of start tags is true (all 7 flags are True), record the content
     def characters(self, content):
