@@ -14,7 +14,7 @@
 .
 
 {% for id in ids %}
-<http://pid.geoscience.gov.au/dataset/{{id}}> a dcat:Dataset ;
-    reg:register <http://pid.geoscience.gov.au/dataset/>
+<http://pid.geoscience.gov.au/dataset/ga/{{id}}> a dcat:Dataset ;
+    reg:register <http://pid.geoscience.gov.au/dataset/ga/>
 .
 {% endfor %}

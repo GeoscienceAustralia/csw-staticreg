@@ -14,7 +14,7 @@
 .
 
 {% for id in ids %}
-<http://pid.geoscience.gov.au/service/{{id}}> a prov:SoftwareAgent ;
-    reg:register <http://pid.geoscience.gov.au/service/>
+<http://pid.geoscience.gov.au/service/ga/{{id}}> a prov:SoftwareAgent ;
+    reg:register <http://pid.geoscience.gov.au/service/ga/>
 .
 {% endfor %}
