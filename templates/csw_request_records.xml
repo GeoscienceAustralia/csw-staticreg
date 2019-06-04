@@ -1,26 +1,22 @@
 <csw:GetRecords
-    xmlns:csw="http://www.opengis.net/cat/csw/2.0.2"
-    xmlns:ogc="http://www.opengis.net/ogc"
-    service="CSW"
-    version="2.0.2"
-    resultType="results"
-    startPosition="{{ start_position }}"
-    maxRecords="{{ max_records }}"
-    outputFormat="application/xml"
-    outputSchema="own"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.opengis.net/cat/csw/2.0.2 http://schemas.opengis.net/csw/2.0.2/CSW-discovery.xsd"
-    xmlns:gmd="http://www.isotc211.org/2005/gmd"
-    xmlns:apiso="http://www.opengis.net/cat/csw/apiso/1.0">
-    <csw:Query typeNames="csw:Record">
-        <csw:ElementSetName>full</csw:ElementSetName>
-        <csw:Constraint version="1.1.0">
-            <ogc:Filter>
-               <PropertyIsLike wildCard="*" singleChar="_" escapeChar="\">
-                   <PropertyName>AnyText</PropertyName>
-                   <Literal>*</Literal>
-               </PropertyIsLike>
-            </ogc:Filter>
-        </csw:Constraint>
-    </csw:Query>
+	xmlns:csw="http://www.opengis.net/cat/csw/2.0.2"
+	xmlns:ogc="http://www.opengis.net/ogc"
+	xmlns:ows="http://www.opengis.net/ows"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	outputSchema="own" outputFormat="application/xml" version="2.0.2"
+	service="CSW" resultType="results" startPosition="{{ start_position }}"
+	maxRecords="{{ max_records }}"
+	xsi:schemaLocation="http://www.opengis.net/cat/csw/2.0.2 http://schemas.opengis.net/csw/2.0.2/CSW-discovery.xsd">
+	<csw:Query typeNames="gmd:MD_Metadata">
+		<csw:ElementSetName>{{ ElementSetName }}</csw:ElementSetName>
+		<csw:Constraint version="1.1.0">
+			<ogc:Filter>
+				<ogc:PropertyIsEqualTo wildCard="%"
+					singleChar="_" escapeChar="\" matchCase="false">
+					<ogc:PropertyName>type</ogc:PropertyName>
+					<ogc:Literal>{{ record_type }}</ogc:Literal>
+				</ogc:PropertyIsEqualTo>
+			</ogc:Filter>
+		</csw:Constraint>
+	</csw:Query>
 </csw:GetRecords>
