@@ -2,11 +2,17 @@ import os
 import math
 import requests
 import re
-import xml.sax as x
+import xml.sax as sax
 from xml.etree import cElementTree
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
 from time import sleep
+import logging
+import sys
+
+logger = logging.getLogger('make_registers')
+
+DEBUG = True
 
 # Define the number of records to retrieve per CSW query page
 RECORDS_PER_PAGE = 100
@@ -19,6 +25,17 @@ RETRY_SLEEP_SECONDS = 5
 
 # Define number of seconds to wait for query response
 QUERY_TIMEOUT = 60
+
+DATASET_CSW_URL = 'https://ecat.ga.gov.au/geonetwork/srv/eng/csw'
+DATASET_XML = 'datasets.xml'
+DATASET_URI_BASE = 'http://pid.geoscience.gov.au/dataset/'
+DATASET_IDS = 'datasets.txt1'
+DATASET_URIS = 'datasets.txt'
+SERVICE_CSW_URL = 'https://ecat.ga.gov.au/geonetwork/srv/eng/csw'
+SERVICE_XML = 'services.xml'
+SERVICE_URI_BASE = 'http://pid.geoscience.gov.au/service/'
+SERVICE_URIS = 'services.txt'
+STATIC_DIR = 'http://13.54.73.187/static'
 
 def store_csw_request(csw_endpoint, request_xml, xml_file_to_save):
     r = requests.post(csw_endpoint,
@@ -35,21 +52,14 @@ def store_csw_request(csw_endpoint, request_xml, xml_file_to_save):
 
 # TODO: implement this to process the requests request as a stream straight into SAX
 def stream_csw_request(csw_endpoint, request_xml):
-    retries = 0
-    while retries < MAX_QUERY_RETRIES:
-        try:
-            r = requests.post(csw_endpoint,
-                              data=request_xml,
-                              headers={'Content-Type': 'application/xml'},
-                              timeout=QUERY_TIMEOUT,
-                              stream=True)
-            assert r.status_code == 200, 'status_code = {}'.format(r.status_code)
-            #assert not re.findall('Catalog is indexing records', r.content.decode('utf-8')), 'Catalog is indexing records'
-            return r.raw
-        except Exception as e:
-            print(e)
-            retries += 1
-            sleep(RETRY_SLEEP_SECONDS)
+    r = requests.post(csw_endpoint,
+                      data=request_xml,
+                      headers={'Content-Type': 'application/xml'},
+                      timeout=QUERY_TIMEOUT,
+                      stream=True)
+    assert r.status_code == 200, 'status_code = {}'.format(r.status_code)
+    #assert not re.findall('Catalog is indexing records', r.content.decode('utf-8')), 'Catalog is indexing records'
+    return r.raw
 
 
 def make_csw_request_xml(start_position, max_records, record_type='dataset', ElementSetName='full'):
@@ -62,7 +72,7 @@ def make_csw_request_xml(start_position, max_records, record_type='dataset', Ele
     xml = xml.replace('{{ max_records }}', str(max_records))
     xml = xml.replace('{{ record_type }}', str(record_type))
     xml = xml.replace('{{ ElementSetName }}', str(ElementSetName))
-    print(xml)
+    logger.debug(xml)
     return xml
 
 
@@ -73,7 +83,7 @@ def get_total_no_of_records(csw_endpoint, record_type='dataset'):
         'csw_request_count.xml')
     xml = open(xml_template_path, 'r').read()
     xml = xml.replace('{{ record_type }}', str(record_type))
-    print(xml)
+    logger.debug(xml)
     xml = xml.encode('utf-8')
 
     retries = 0
@@ -85,18 +95,21 @@ def get_total_no_of_records(csw_endpoint, record_type='dataset'):
     
         # extract the number of hits
         #return r.content
-        print(r.content.decode('utf-8'))
+        logger.debug(r.content.decode('utf-8'))
         try:
             return int(re.findall('numberOfRecordsMatched="(\d+)"', r.content.decode('utf-8'))[0])
         except Exception as e:
-            print('Error: {}'.format(e))
+            logger.warning('Record count query failed: {}'.format(e))
             retries += 1
             sleep(RETRY_SLEEP_SECONDS)
+            logger.info('Retrying...')
+            
+    raise Exception('Maximum number of retries exceeded for record count query')
 
-class IdHandler(x.ContentHandler):
+class IdHandler(sax.ContentHandler):
     # see http://python.zirael.org/e-sax2.html
     def __init__(self):
-        x.ContentHandler.__init__(self)
+        sax.ContentHandler.__init__(self)
         self.ids = []
         self.one = False
         self.two = False
@@ -151,9 +164,9 @@ class IdHandler(x.ContentHandler):
 
 def extract_ecat_ids(csw_result_file):
     n = IdHandler()
-    parser = x.make_parser()
+    parser = sax.make_parser()
     parser.setContentHandler(n)
-    parser.setFeature(x.handler.feature_namespaces, True)
+    parser.setFeature(sax.handler.feature_namespaces, True)
     parser.parse(open(csw_result_file, 'r'))
 
     return sorted(n.ids)
@@ -161,12 +174,55 @@ def extract_ecat_ids(csw_result_file):
 
 def extract_ecat_ids_stream(result_stream):
     n = IdHandler()
-    parser = x.make_parser()
+    parser = sax.make_parser()
     parser.setContentHandler(n)
-    parser.setFeature(x.handler.feature_namespaces, True)
+    parser.setFeature(sax.handler.feature_namespaces, True)
     parser.parse(result_stream)
 
     return sorted(n.ids)
+
+def get_ecat_ids(csw_endpoint, record_type='dataset'):
+    '''
+    Function to return sorted list of eCat IDs using paginated CSW queries
+    '''
+    num_records = get_total_no_of_records(csw_endpoint, record_type=record_type)
+    #num_records = 3000
+    logger.info('Total number of {} records to retrieve: {}'.format(record_type, num_records))
+
+    # calculate the total number of page calls
+    no_pages = int(math.ceil(num_records / RECORDS_PER_PAGE))
+
+    # paginate the response until no_page_calls reached, adding result of each page request to ids list
+    ids = []
+    page = 1
+    while page <= no_pages:
+        start_position = (page - 1) * RECORDS_PER_PAGE + 1
+        paged_query = make_csw_request_xml(start_position, RECORDS_PER_PAGE, record_type='dataset')
+        # request one page
+        logger.info('requesting page {} of {}'.format(page, no_pages))
+        retries = 0
+        while True: # Loop for query retries on failure
+            try:
+                i = extract_ecat_ids_stream(stream_csw_request(DATASET_CSW_URL, paged_query))
+                logger.info('page ids: {}'.format(len(i)))
+                ids.extend(i)
+        
+                page += 1
+                break
+            except Exception as e:
+                logger.warning('Query failed: '.format(e))
+                if retries < MAX_QUERY_RETRIES:
+                    retries += 1
+                    sleep(RETRY_SLEEP_SECONDS)
+                    logger.info('Retrying...')
+                else:
+                    raise Exception('Maximum number of retries exceeded')
+
+    ids.sort()  # to sort the entire lists, since it is paginated
+
+    logger.info('total: {}'.format(len(ids)))
+
+    return ids
 
 
 # incomplete ET implementation of the same SAX parsing as IdHandler
@@ -216,35 +272,20 @@ def generate_register(ecat_ids, datasets_services='datasets', mime='text/html', 
         raise ValueError('\'mime\' must be either text/html or text/turtle. Default (None) is text/html.')
 
 
-# this only runs as a script
-if __name__ == '__main__':
-    datasets_csw_endpoint = 'https://ecat.ga.gov.au/geonetwork/srv/eng/csw'
-    datasets_xml = 'datasets.xml'
-    datasets_uri_base = 'http://pid.geoscience.gov.au/dataset/'
-    datasets_ids = 'datasets.txt1'
-    datasets_uris = 'datasets.txt'
-    services_csw_endpoint = 'https://ecat.ga.gov.au/geonetwork/srv/eng/csw'
-    services_xml = 'services.xml'
-    services_uri_base = 'http://pid.geoscience.gov.au/service/'
-    services_uris = 'services.txt'
-    static_dir = 'http://13.54.73.187/static'
+def main():
 
     #
     #   Services
     #
     # get all the service IDs from eCat's Service's virtual CSW endpoint
-    service_count = get_total_no_of_records(services_csw_endpoint, record_type='service')
-    print('{} service records found'.format(service_count))
-    
-    request_query = make_csw_request_xml(1, service_count, record_type='service')
-    ids = extract_ecat_ids_stream(stream_csw_request(services_csw_endpoint, request_query))
+    ids = get_ecat_ids(SERVICE_CSW_URL, record_type='service')
  
     # make an HTML & a TTL file from those IDs
     open(os.path.dirname(os.path.realpath(__file__)) + '/services.html', 'w').write(generate_register(
         ids,
         datasets_services='services',
         mime='text/html',
-        html_static_dir=static_dir
+        html_static_dir=STATIC_DIR
     ))
  
     open(os.path.dirname(os.path.realpath(__file__)) + '/services.ttl', 'w').write(generate_register(
@@ -253,44 +294,18 @@ if __name__ == '__main__':
         mime='text/turtle'
     ))
  
-    print('finished services')
+    logger.info('finished services')
 
     #
     #   Datasets, with pagination
-    #
-    # get all the service IDs from eCat's Datasets's virtual CSW endpoint
-    # get the total number of records
-    num_records = get_total_no_of_records(datasets_csw_endpoint, record_type='dataset')
-    #num_records = 3000
-    print('Total number of dataset records to retrieve: {}'.format(num_records))
-
-    # calculate the total number of page calls
-    no_pages = int(math.ceil(num_records / RECORDS_PER_PAGE))
-
-    # paginate the response until no_page_calls reached, adding result of each page request to ids list
-    ids = []
-    page = 1
-    while page <= no_pages:
-        start_position = (page - 1) * RECORDS_PER_PAGE + 1
-        paged_query = make_csw_request_xml(start_position, RECORDS_PER_PAGE, record_type='dataset')
-        # request one page
-        print('requesting page {} of {}'.format(page, no_pages))
-        i = extract_ecat_ids_stream(stream_csw_request(datasets_csw_endpoint, paged_query))
-        print('page ids: {}'.format(len(i)))
-        ids.extend(i)
-
-        page += 1
-
-    ids.sort()  # to sort the entire lists, since it is paginated
-
-    print('total: {}'.format(len(ids)))
+    ids = get_ecat_ids(DATASET_CSW_URL, record_type='dataset')
 
     # make an HTML & a TTL file from those IDs
     open(os.path.dirname(os.path.realpath(__file__)) + '/datasets.html', 'w').write(generate_register(
         ids,
         datasets_services='datasets',
         mime='text/html',
-        html_static_dir=static_dir
+        html_static_dir=STATIC_DIR
     ))
 
     open(os.path.dirname(os.path.realpath(__file__)) + '/datasets.ttl', 'w').write(generate_register(
@@ -309,4 +324,24 @@ if __name__ == '__main__':
     open(os.path.dirname(os.path.realpath(__file__)) + '/datasets-metatag.html', 'w') \
         .write(sm_template.render(ids=ids, generated=generated_datetime_str))
 
-    print('finished datasets')
+    logger.info('finished datasets')
+    
+
+# this only runs as a script
+if __name__ == '__main__':
+    # Setup logging handler if required
+    if not logger.handlers:
+        # Set handler for root root_logger to standard output
+        console_handler = logging.StreamHandler(sys.stdout)
+        #console_handler.setLevel(logging.INFO)
+        console_handler.setLevel(logging.DEBUG)
+        console_formatter = logging.Formatter('%(message)s')
+        console_handler.setFormatter(console_formatter)
+        logger.addHandler(console_handler)
+        
+    if DEBUG:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
+        
+    main()
