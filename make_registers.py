@@ -15,7 +15,7 @@ logger = logging.getLogger('make_registers')
 DEBUG = True
 
 # Define the number of records to retrieve per CSW query page
-RECORDS_PER_PAGE = 100
+RECORDS_PER_PAGE = 1000
 
 # Define the number of times to retry a failed query
 MAX_QUERY_RETRIES = 1
@@ -24,7 +24,7 @@ MAX_QUERY_RETRIES = 1
 RETRY_SLEEP_SECONDS = 5
 
 # Define number of seconds to wait for query response
-QUERY_TIMEOUT = 60
+QUERY_TIMEOUT = 120
 
 DATASET_CSW_URL = 'https://ecat.ga.gov.au/geonetwork/srv/eng/csw'
 DATASET_XML = 'datasets.xml'
@@ -198,7 +198,7 @@ def get_ecat_ids(csw_endpoint, record_type='dataset'):
     page = 1
     while page <= no_pages:
         start_position = (page - 1) * RECORDS_PER_PAGE + 1
-        paged_query = make_csw_request_xml(start_position, RECORDS_PER_PAGE, record_type='dataset')
+        paged_query = make_csw_request_xml(start_position, RECORDS_PER_PAGE, record_type=record_type)
         # request one page
         logger.info('requesting page {} of {}'.format(page, no_pages))
         retries = 0
