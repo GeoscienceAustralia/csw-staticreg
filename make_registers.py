@@ -18,7 +18,7 @@ DEBUG = True
 RECORDS_PER_PAGE = 100
 
 # Define the number of times to retry a failed query
-MAX_QUERY_RETRIES = 3
+MAX_QUERY_RETRIES = 1
 
 # Define number of seconds to sleep before retrying failed query
 RETRY_SLEEP_SECONDS = 5
@@ -87,7 +87,7 @@ def get_total_no_of_records(csw_endpoint, record_type='dataset'):
     xml = xml.encode('utf-8')
 
     retries = 0
-    while retries < MAX_QUERY_RETRIES:
+    while retries <= MAX_QUERY_RETRIES:
         r = requests.post(csw_endpoint,
                           data=xml,
                           headers={'Content-Type': 'application/xml'},
@@ -97,6 +97,7 @@ def get_total_no_of_records(csw_endpoint, record_type='dataset'):
         #return r.content
         logger.debug(r.content.decode('utf-8'))
         try:
+            assert r.status_code == 200, 'status_code = {}'.format(r.status_code)
             return int(re.findall('numberOfRecordsMatched="(\d+)"', r.content.decode('utf-8'))[0])
         except Exception as e:
             logger.warning('Record count query failed: {}'.format(e))
@@ -204,9 +205,9 @@ def get_ecat_ids(csw_endpoint, record_type='dataset'):
         while True: # Loop for query retries on failure
             try:
                 i = extract_ecat_ids_stream(stream_csw_request(DATASET_CSW_URL, paged_query))
+                logger.debug(i)
                 logger.info('page ids: {}'.format(len(i)))
-                ids.extend(i)
-        
+                ids.extend(i)        
                 page += 1
                 break
             except Exception as e:
@@ -219,7 +220,7 @@ def get_ecat_ids(csw_endpoint, record_type='dataset'):
                     raise Exception('Maximum number of retries exceeded')
 
     ids.sort()  # to sort the entire lists, since it is paginated
-
+    logger.debug(ids)
     logger.info('total: {}'.format(len(ids)))
 
     return ids
@@ -278,38 +279,38 @@ def main():
     #   Services
     #
     # get all the service IDs from eCat's Service's virtual CSW endpoint
-    ids = get_ecat_ids(SERVICE_CSW_URL, record_type='service')
- 
+    service_ids = get_ecat_ids(SERVICE_CSW_URL, record_type='service')
+   
     # make an HTML & a TTL file from those IDs
     open(os.path.dirname(os.path.realpath(__file__)) + '/services.html', 'w').write(generate_register(
-        ids,
+        service_ids,
         datasets_services='services',
         mime='text/html',
         html_static_dir=STATIC_DIR
     ))
- 
+   
     open(os.path.dirname(os.path.realpath(__file__)) + '/services.ttl', 'w').write(generate_register(
-        ids,
+        service_ids,
         datasets_services='services',
         mime='text/turtle'
     ))
- 
-    logger.info('finished services')
+   
+    logger.info('Finished processing services')
 
     #
     #   Datasets, with pagination
-    ids = get_ecat_ids(DATASET_CSW_URL, record_type='dataset')
+    dataset_ids = get_ecat_ids(DATASET_CSW_URL, record_type='dataset')
 
     # make an HTML & a TTL file from those IDs
     open(os.path.dirname(os.path.realpath(__file__)) + '/datasets.html', 'w').write(generate_register(
-        ids,
+        dataset_ids,
         datasets_services='datasets',
         mime='text/html',
         html_static_dir=STATIC_DIR
     ))
 
     open(os.path.dirname(os.path.realpath(__file__)) + '/datasets.ttl', 'w').write(generate_register(
-        ids,
+        dataset_ids,
         datasets_services='datasets',
         mime='text/turtle'
     ))
@@ -322,9 +323,9 @@ def main():
 
     generated_datetime_str = datetime.now().strftime('%d %b %Y, %I:%M %p')
     open(os.path.dirname(os.path.realpath(__file__)) + '/datasets-metatag.html', 'w') \
-        .write(sm_template.render(ids=ids, generated=generated_datetime_str))
+        .write(sm_template.render(ids=dataset_ids, generated=generated_datetime_str))
 
-    logger.info('finished datasets')
+    logger.info('Finished processing datasets')
     
 
 # this only runs as a script
